@@ -66,12 +66,21 @@ type SSTable struct {
 	offsets  []int64
 }
 
-// NewSSTable initializes a new SSTable and builds an in-memory index of keys.
+// NewSSTable initializes a new SSTable and builds or loads an in-memory index of keys.
 func NewSSTable(filename string) (*SSTable, error) {
 	sstable := &SSTable{filename: filename}
-	err := sstable.buildIndex()
-	if err != nil {
-		return nil, err
+	indexFilename := filename + ".index"
+
+	// Try to load the index from disk
+	if err := sstable.loadIndex(indexFilename); err != nil {
+		// If loading fails, build the index from scratch
+		if err := sstable.buildIndex(); err != nil {
+			return nil, err
+		}
+		// Save the newly built index to disk
+		if err := sstable.saveIndex(indexFilename); err != nil {
+			return nil, err
+		}
 	}
 	return sstable, nil
 }
@@ -94,6 +103,48 @@ func (s *SSTable) buildIndex() error {
 			s.offsets = append(s.offsets, offset)
 		}
 		offset += int64(len(line)) + 1 // +1 for the newline character
+	}
+	return scanner.Err()
+}
+
+// saveIndex saves the in-memory index to a file.
+func (s *SSTable) saveIndex(filename string) error {
+	file, err := os.Create(filename)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	writer := bufio.NewWriter(file)
+	for i, key := range s.index {
+		_, err := writer.WriteString(fmt.Sprintf("%s:%d\n", key, s.offsets[i]))
+		if err != nil {
+			return err
+		}
+	}
+	return writer.Flush()
+}
+
+// loadIndex loads the index from a file into memory.
+func (s *SSTable) loadIndex(filename string) error {
+	file, err := os.Open(filename)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		line := scanner.Text()
+		parts := strings.Split(line, ":")
+		if len(parts) == 2 {
+			offset, err := strconv.ParseInt(parts[1], 10, 64)
+			if err != nil {
+				return err
+			}
+			s.index = append(s.index, parts[0])
+			s.offsets = append(s.offsets, offset)
+		}
 	}
 	return scanner.Err()
 }

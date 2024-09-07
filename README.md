@@ -165,3 +165,6 @@ UPDATE productviewcount SET viewCount = viewCount + 1 WHERE productId = '1';
     - quorum: resp from node A + hash(resp) from node B
     - fix inconistency
         - read repair
+     
+## Ucase: Adtech
+- https://engineeringblog.yelp.com/2016/08/how-we-scaled-our-ad-analytics-with-cassandra.html

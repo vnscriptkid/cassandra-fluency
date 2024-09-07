@@ -168,3 +168,4 @@ UPDATE productviewcount SET viewCount = viewCount + 1 WHERE productId = '1';
      
 ## Ucase: Adtech
 - https://engineeringblog.yelp.com/2016/08/how-we-scaled-our-ad-analytics-with-cassandra.html
+- Timeseries: https://youtu.be/5vWvukzk9Z0?si=Xr3yZoPq-yj9sgI0
